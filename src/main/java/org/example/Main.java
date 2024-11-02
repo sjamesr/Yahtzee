@@ -7,6 +7,7 @@ import java.util.Random;
 
 public class Main {
     public static void main(String[] args) {
+        int remaining[] = new int[]{20};
         JFrame f = new JFrame("Hello, world!");
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -28,25 +29,33 @@ public class Main {
             f.getContentPane().add(button, c);
         }
 
-        JButton rollButton = new JButton("Roll");
+        JButton rollButton = new JButton("Roll, " + (remaining[0]) + " remaining");
         rollButton.addActionListener(e -> {
             for (JDiceToggleButton b : buttons) {
                 if (!b.isSelected()) {
                     b.setValue(r.nextInt(1, 7));
                 }
             }
-
+            if (remaining[0] > 1) {
+                remaining[0]--;
+                rollButton.setText("Roll, " + (remaining[0]) + " remaining");
+            } else {
+                rollButton.setEnabled(false);
+                rollButton.setText("No rolls remaining");
+            }
             if (buttons.stream().allMatch(b -> b.getValue() == 6)) {
                 JOptionPane.showMessageDialog(f.getContentPane(), "SKIBIDI!!!! YOU WIN!");
             }
         });
         c.gridy++;
-
+        c.gridwidth = 0;
         f.getContentPane().add(rollButton, c);
 
 //        f.pack();
         f.setVisible(true);
-        f.setSize(100, 100);
-        f.setLocation(200, 200);
+        SwingUtilities.invokeLater(() -> {
+            f.setLocation(200, 200);
+            f.setSize(100, 100);
+        });
     }
 }
