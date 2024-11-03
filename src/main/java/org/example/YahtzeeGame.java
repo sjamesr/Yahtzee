@@ -25,6 +25,17 @@ public class YahtzeeGame {
         combinations.add(new Combination("Fives", d -> d.getDice().stream().mapToInt(v -> v == 5 ? 5 : 0).sum()));
         combinations.add(new Combination("Sixes", d -> d.getDice().stream().mapToInt(v -> v == 6 ? 6 : 0).sum()));
 
+        combinations.add(new Combination("Full house", d -> {
+            int[] sortedDice = d.getDice().stream().sorted().mapToInt(x -> x).toArray();
+            if(sortedDice[0] == sortedDice[1] && sortedDice[2] == sortedDice[3] && sortedDice[3] == sortedDice[4] && sortedDice[1] != sortedDice[4]){
+                return 25;
+            }
+            if(sortedDice[0] == sortedDice[1] && sortedDice[1] == sortedDice[2] && sortedDice[3] == sortedDice[4] && sortedDice[1] != sortedDice[4]){
+                return 25;
+            }
+            return 0;
+        }));
+
         combinations.add(new Combination("Yahtzee", d -> d.getDice().stream().allMatch(x -> x == d.getDie(0)) ? 50 : 0));
 
         // take a copy

@@ -51,4 +51,24 @@ public class YahtzeeGameTest {
         // Making the move should have rolled the dice for the new player
         assertEquals(2, game.getRollsRemaining());
     }
+
+    @Test
+    public void testFullHouse() {
+        YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Patrick"), new YahtzeePlayer("James")));
+
+        Combination fullHouse = null;
+        for (var c : game.getCombinations()) {
+            if (c.getName().equals("Full house")) {
+                fullHouse = c;
+            }
+        }
+
+        assertNotNull(fullHouse);
+
+        assertEquals(25, fullHouse.score(new YahtzeeDice(2, 1, 1, 2, 2)));
+        assertEquals(25, fullHouse.score(new YahtzeeDice(1, 1, 2, 1, 2)));
+        assertEquals(0, fullHouse.score(new YahtzeeDice(3, 1, 1, 2, 2)));
+
+        assertEquals(0, fullHouse.score(new YahtzeeDice(1, 1, 1, 1, 1)));
+    }
 }

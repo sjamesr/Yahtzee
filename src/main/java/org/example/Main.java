@@ -62,8 +62,8 @@ public class Main {
         c.gridwidth = GridBagConstraints.REMAINDER;
         f.getContentPane().add(new JButton(makeMoveAction), c);
 
-        f.setVisible(true);
         f.pack();
+        f.setVisible(true);
     }
 
     private static JTable getMoveTable(YahtzeeGame game) {
