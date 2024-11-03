@@ -5,22 +5,15 @@ import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
 
-public class JDiceToggleButton extends JToggleButton {
-    private int val;
+public class JDiceToggleButton extends JToggleButton implements YahtzeeGame.GameStateListener {
+    private YahtzeeGame game;
+    private int die;
 
-    public JDiceToggleButton(int val) {
+    public JDiceToggleButton(YahtzeeGame game, int die) {
         super();
-
-        this.val = val;
-    }
-
-    public void setValue(int newValue) {
-        this.val = newValue;
-        repaint();
-    }
-
-    public int getValue() {
-        return val;
+        this.game = game;
+        this.die = die;
+        game.addGameStateListener(this);
     }
 
     @Override
@@ -30,6 +23,16 @@ public class JDiceToggleButton extends JToggleButton {
         var hints = new HashMap<>();
         hints.put(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         ((Graphics2D) g).addRenderingHints(hints);
-        new DicePainter().paintDice(g, new Rectangle2D.Double(0, 0, getWidth(), getHeight()), val);
+        new DicePainter().paintDice(g, new Rectangle2D.Double(0, 0, getWidth(), getHeight()), game.getDice().getDie(die));
+    }
+
+    @Override
+    public void gameStateChanged() {
+        repaint();
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        return new Dimension(100, 100);
     }
 }
