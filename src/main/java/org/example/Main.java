@@ -80,8 +80,10 @@ public class Main {
 
             @Override
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+                Component result = super.prepareRenderer(renderer, row, column);
+
                 int whoseTurn = game.getWhoseTurn();
-                setFont(regularFont);
+                result.setFont(regularFont);
 
                 // If the current player has already made the given move, render the score in bold and the name in
                 // strikethrough.
@@ -89,13 +91,13 @@ public class Main {
                 // TODO: we need to handle Yahtzee correctly, it can be played more than once for a bonus
                 if (game.getPlayerMoves(whoseTurn).containsKey((Combination) getValueAt(row, 0))) {
                     if (column == 0) {
-                        setFont(strikethroughFont);
+                        result.setFont(strikethroughFont);
                     } else if (column - 1 == whoseTurn) {
-                        setFont(boldFont);
+                        result.setFont(boldFont);
                     }
                 }
 
-                return super.prepareRenderer(renderer, row, column);
+                return result;
             }
         };
 
