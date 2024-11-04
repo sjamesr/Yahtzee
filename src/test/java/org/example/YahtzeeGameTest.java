@@ -71,4 +71,21 @@ public class YahtzeeGameTest {
 
         assertEquals(0, fullHouse.score(new YahtzeeDice(1, 1, 1, 1, 1)));
     }
+
+    @Test
+    public void testSmallStraight() {
+        YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Patrick"), new YahtzeePlayer("James")));
+
+        Combination smallStraight = null;
+        for (var c : game.getCombinations()) {
+            if (c.getName().equals("Small straight")) {
+                smallStraight = c;
+            }
+        }
+
+        assertNotNull(smallStraight);
+
+        assertEquals(30, smallStraight.score(new YahtzeeDice(1, 2, 3, 4, 2)));
+        assertEquals(30, smallStraight.score(new YahtzeeDice(2, 3, 1, 5, 4)));
+    }
 }
