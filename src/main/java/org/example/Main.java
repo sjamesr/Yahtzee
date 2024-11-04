@@ -31,8 +31,8 @@ public class Main {
         var c = new GridBagConstraints();
         c.gridy = 0;
         c.weightx = 1;
-        c.weighty = 1;
-        c.fill = GridBagConstraints.BOTH;
+        c.weighty = 0;
+        c.fill = GridBagConstraints.HORIZONTAL;
 
         c.gridwidth = 5;
         MakeMoveAction makeMoveAction = new MakeMoveAction(game);
@@ -44,8 +44,16 @@ public class Main {
                 makeMoveAction.setCombinationToPlay((Combination) moveTable.getValueAt(moveTable.getSelectedRow(), 0));
             }
         });
-        f.getContentPane().add(new JScrollPane(moveTable), c);
+        var scrollPane = new JScrollPane(moveTable);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        scrollPane.setPreferredSize(new Dimension((int) moveTable.getPreferredSize().getWidth(),
+                5 + (int) (moveTable.getPreferredSize().getHeight()
+                        + moveTable.getTableHeader().getPreferredSize().getHeight())));
+        f.getContentPane().add(scrollPane, c);
 
+        c.fill = GridBagConstraints.BOTH;
+        c.weightx = 1;
+        c.weighty = 1;
         c.gridy++;
         c.gridwidth = 1;
         for (int i = 0; i < 5; i++) {
@@ -64,6 +72,7 @@ public class Main {
 
         f.pack();
         f.setVisible(true);
+        f.setResizable(false);
     }
 
     private static JTable getMoveTable(YahtzeeGame game) {
