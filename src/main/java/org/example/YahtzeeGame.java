@@ -1,6 +1,9 @@
 package org.example;
 
+import com.google.common.collect.*;
+
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class YahtzeeGame {
     private final List<YahtzeePlayer> players;
@@ -26,15 +29,26 @@ public class YahtzeeGame {
         combinations.add(new Combination("Sixes", d -> d.getDice().stream().mapToInt(v -> v == 6 ? 6 : 0).sum()));
 
         combinations.add(new Combination("Full house", d -> {
-            int[] sortedDice = d.getDice().stream().sorted().mapToInt(x -> x).toArray();
-            if(sortedDice[0] == sortedDice[1] && sortedDice[2] == sortedDice[3] && sortedDice[3] == sortedDice[4] && sortedDice[1] != sortedDice[4]){
-                return 25;
-            }
-            if(sortedDice[0] == sortedDice[1] && sortedDice[1] == sortedDice[2] && sortedDice[3] == sortedDice[4] && sortedDice[1] != sortedDice[4]){
-                return 25;
-            }
-            return 0;
+            var v = TreeMultiset.create(d.getDice());
+            return v.entrySet().stream().mapToInt(Multiset.Entry::getCount).boxed().collect(Collectors.toSet()).equals(ImmutableSet.of(2, 3)) ? 25 : 0;
         }));
+
+        combinations.add(new Combination("Three of a kind", d -> {
+            var v = TreeMultiset.create(d.getDice());
+            // If any element is repeated 3 times, the value is the sum of all the elements
+            return v.stream().anyMatch(x -> v.count(x) >= 3) ? d.getDice().stream().reduce(0, Integer::sum) : 0;
+        }));
+
+        combinations.add(new Combination("Four of a kind", d -> {
+            var v = TreeMultiset.create(d.getDice());
+            return v.stream().anyMatch(x -> v.count(x) >= 4) ? d.getDice().stream().reduce(0, Integer::sum) : 0;
+        }));
+
+        combinations.add(new Combination("Small straight",
+                d -> longestSequenceLength(d.getDice().stream().sorted().toList()) >= 4 ? 30 : 0));
+
+        combinations.add(new Combination("Large straight",
+                d -> longestSequenceLength(d.getDice().stream().sorted().toList()) == 5 ? 40 : 0));
 
         combinations.add(new Combination("Yahtzee", d -> d.getDice().stream().allMatch(x -> x == d.getDie(0)) ? 50 : 0));
 
@@ -131,5 +145,24 @@ public class YahtzeeGame {
          * has changed (e.g. dice rolled, move made, etc.).
          */
         void gameStateChanged();
+    }
+
+    private static int longestSequenceLength(List<Integer> sequence) {
+        int length = 1;
+        int max = 1;
+        for (int i = 1; i < sequence.size(); i++) {
+            int cur = sequence.get(i);
+            int last = sequence.get(i - 1);
+            if (cur == last + 1) {
+                length++;
+                if (length > max) {
+                    max = length;
+                }
+            } else if (cur != last) {
+                length = 1;
+            }
+        }
+
+        return max;
     }
 }
