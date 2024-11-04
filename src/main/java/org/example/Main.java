@@ -62,6 +62,15 @@ public class Main {
             f.getContentPane().add(button, c);
         }
 
+        c.gridy++;
+        c.weighty = 0;
+        c.anchor = GridBagConstraints.CENTER;
+        for (int i = 0; i < 5; i++) {
+            var checkbox = new JCheckBox(holdActions.get(i));
+            checkbox.setHorizontalAlignment(SwingConstants.CENTER);
+            f.getContentPane().add(checkbox, c);
+        }
+
         JButton rollButton = new JButton(new RollAction(game));
         c.gridy++;
         c.gridwidth = 2;
@@ -159,6 +168,7 @@ public class Main {
             this.game = game;
             this.die = die;
             putValue(AbstractAction.SELECTED_KEY, false);
+            putValue(AbstractAction.SHORT_DESCRIPTION, "Hold die " + (die + 1));
             game.addGameStateListener(this);
         }
 
