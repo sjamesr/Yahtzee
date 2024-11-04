@@ -10,56 +10,88 @@ public class YahtzeeGame {
     private final YahtzeeDice dice;
     private int whoseTurn;
     private int rollsRemaining = 2;
-    private final List<Combination> combinations;
+    private final Set<Combination> upperCombinations;
+    private final Set<Combination> lowerCombinations;
     private final List<Map<Combination, Integer>> movesMade;
     private final List<GameStateListener> listeners = new ArrayList<>();
+    private final int[] upperSectionScore;
+    private final int[] lowerSectionScore;
+    private final int[] bonusYahtzeeCount;
+    private final Combination yahtzeeCombo;
 
     public YahtzeeGame(List<YahtzeePlayer> players) {
         if (players.isEmpty()) {
             throw new IllegalArgumentException("Yahtzee games must have at least one player");
         }
+        this.dice = new YahtzeeDice();
 
-        this.combinations = new ArrayList<>();
-        combinations.add(new Combination("Chance", d -> d.getDice().stream().reduce(0, Integer::sum)));
-        combinations.add(new Combination("Aces", d -> d.getDice().stream().mapToInt(v -> v == 1 ? 1 : 0).sum()));
-        combinations.add(new Combination("Twos", d -> d.getDice().stream().mapToInt(v -> v == 2 ? 2 : 0).sum()));
-        combinations.add(new Combination("Threes", d -> d.getDice().stream().mapToInt(v -> v == 3 ? 3 : 0).sum()));
-        combinations.add(new Combination("Fours", d -> d.getDice().stream().mapToInt(v -> v == 4 ? 4 : 0).sum()));
-        combinations.add(new Combination("Fives", d -> d.getDice().stream().mapToInt(v -> v == 5 ? 5 : 0).sum()));
-        combinations.add(new Combination("Sixes", d -> d.getDice().stream().mapToInt(v -> v == 6 ? 6 : 0).sum()));
+        upperCombinations = new LinkedHashSet<>();
+        upperCombinations.add(new Combination("Aces", () -> dice.getDice().stream().mapToInt(v -> v == 1 ? 1 : 0).sum()));
+        upperCombinations.add(new Combination("Twos", () -> dice.getDice().stream().mapToInt(v -> v == 2 ? 2 : 0).sum()));
+        upperCombinations.add(new Combination("Threes", () -> dice.getDice().stream().mapToInt(v -> v == 3 ? 3 : 0).sum()));
+        upperCombinations.add(new Combination("Fours", () -> dice.getDice().stream().mapToInt(v -> v == 4 ? 4 : 0).sum()));
+        upperCombinations.add(new Combination("Fives", () -> dice.getDice().stream().mapToInt(v -> v == 5 ? 5 : 0).sum()));
+        upperCombinations.add(new Combination("Sixes", () -> dice.getDice().stream().mapToInt(v -> v == 6 ? 6 : 0).sum()));
 
-        combinations.add(new Combination("Full house", d -> {
-            var v = TreeMultiset.create(d.getDice());
-            return v.entrySet().stream().mapToInt(Multiset.Entry::getCount).boxed().collect(Collectors.toSet()).equals(ImmutableSet.of(2, 3)) ? 25 : 0;
-        }));
+        lowerCombinations = new LinkedHashSet<>();
+        lowerCombinations.add(new Combination("Chance", () -> dice.getDice().stream().reduce(0, Integer::sum)));
 
-        combinations.add(new Combination("Three of a kind", d -> {
-            var v = TreeMultiset.create(d.getDice());
+        lowerCombinations.add(new Combination("Three of a kind", () -> {
+            var v = TreeMultiset.create(dice.getDice());
             // If any element is repeated 3 times, the value is the sum of all the elements
-            return v.stream().anyMatch(x -> v.count(x) >= 3) ? d.getDice().stream().reduce(0, Integer::sum) : 0;
+            return v.stream().anyMatch(x -> v.count(x) >= 3) ? dice.getDice().stream().reduce(0, Integer::sum) : 0;
         }));
 
-        combinations.add(new Combination("Four of a kind", d -> {
-            var v = TreeMultiset.create(d.getDice());
-            return v.stream().anyMatch(x -> v.count(x) >= 4) ? d.getDice().stream().reduce(0, Integer::sum) : 0;
+        lowerCombinations.add(new Combination("Four of a kind", () -> {
+            var v = TreeMultiset.create(dice.getDice());
+            return v.stream().anyMatch(x -> v.count(x) >= 4) ? dice.getDice().stream().reduce(0, Integer::sum) : 0;
         }));
 
-        combinations.add(new Combination("Small straight",
-                d -> longestSequenceLength(d.getDice().stream().sorted().toList()) >= 4 ? 30 : 0));
+        yahtzeeCombo = new Combination("Yahtzee", () -> isYahtzee() ? 50 : 0);
 
-        combinations.add(new Combination("Large straight",
-                d -> longestSequenceLength(d.getDice().stream().sorted().toList()) == 5 ? 40 : 0));
+        lowerCombinations.add(new Combination("Full house", () -> {
+            if (isYahtzee() && getPlayerMoves(getWhoseTurn()).getOrDefault(yahtzeeCombo, 0) != 0) {
+                return 25;
+            }
 
-        combinations.add(new Combination("Yahtzee", d -> d.getDice().stream().allMatch(x -> x == d.getDie(0)) ? 50 : 0));
+            var v = TreeMultiset.create(dice.getDice());
+            return v.entrySet().stream().mapToInt(Multiset.Entry::getCount)
+                    .boxed().collect(Collectors.toSet()).equals(ImmutableSet.of(2, 3)) ? 25 : 0;
+        }));
+
+        lowerCombinations.add(new Combination("Small straight",
+                () -> {
+                    if (isYahtzee() && getPlayerMoves(getWhoseTurn()).getOrDefault(yahtzeeCombo, 0) != 0) {
+                        return 30;
+                    } else if (longestSequenceLength(dice.getDice().stream().sorted().toList()) >= 4) {
+                        return 30;
+                    }
+                    return 0;
+                }));
+
+        lowerCombinations.add(new Combination("Large straight",
+                () -> {
+                    if (isYahtzee() && getPlayerMoves(getWhoseTurn()).getOrDefault(yahtzeeCombo, 0) != 0) {
+                        return 40;
+                    } else if (longestSequenceLength(dice.getDice().stream().sorted().toList()) == 5) {
+                        return 40;
+                    }
+                    return 0;
+                }));
+
+        lowerCombinations.add(yahtzeeCombo);
 
         // take a copy
         this.players = new ArrayList<>(players);
-        this.dice = new YahtzeeDice();
         this.whoseTurn = 0;
         this.movesMade = new ArrayList<>(players.size());
         for (int i = 0; i < players.size(); i++) {
             movesMade.add(new HashMap<>());
         }
+
+        this.upperSectionScore = new int[players.size()];
+        this.lowerSectionScore = new int[players.size()];
+        this.bonusYahtzeeCount = new int[players.size()];
     }
 
     public void addGameStateListener(GameStateListener l) {
@@ -68,6 +100,14 @@ public class YahtzeeGame {
 
     public List<YahtzeePlayer> getPlayers() {
         return Collections.unmodifiableList(players);
+    }
+
+    public Set<Combination> getUpperCombinations() {
+        return Collections.unmodifiableSet(upperCombinations);
+    }
+
+    public Set<Combination> getLowerCombinations() {
+        return Collections.unmodifiableSet(lowerCombinations);
     }
 
     /**
@@ -79,7 +119,21 @@ public class YahtzeeGame {
             throw new IllegalStateException(players.get(whoseTurn) + " has already played " + combination.getName());
         }
 
-        playerMoves.put(combination, combination.score(dice));
+        int score = combination.score();
+
+        // Check for bonus Yahtzee.
+        if (isYahtzee() && playerMoves.getOrDefault(yahtzeeCombo, 0) != 0) {
+            bonusYahtzeeCount[whoseTurn]++;
+        }
+
+        playerMoves.put(combination, score);
+
+        if (upperCombinations.contains(combination)) {
+            upperSectionScore[whoseTurn] += score;
+        } else if (lowerCombinations.contains(combination)) {
+            lowerSectionScore[whoseTurn] += score;
+        }
+
         whoseTurn = (whoseTurn + 1) % players.size();
         dice.clearHeld();
         dice.roll();
@@ -121,16 +175,45 @@ public class YahtzeeGame {
         return rollsRemaining;
     }
 
-    public List<Combination> getCombinations() {
-        return Collections.unmodifiableList(combinations);
+
+    public int getUpperSectionScore(int player) {
+        return upperSectionScore[player];
+    }
+
+    public int getUpperSectionBonusScore(int player) {
+        return upperSectionScore[player] >= 63 ? 35 : 0;
+    }
+
+    public int getLowerSectionScore(int player) {
+        return lowerSectionScore[player];
+    }
+
+    public int getBonusYahtzeeCount(int player) {
+        return bonusYahtzeeCount[player];
+    }
+
+    public int getBonusYahtzeeScore(int player) {
+        return 100 * bonusYahtzeeCount[player];
     }
 
     public int getPlayerScore(int player) {
-        return movesMade.get(player).values().stream().reduce(0, Integer::sum);
+        int upper = getUpperSectionScore(player);
+        int upperBonus = getUpperSectionBonusScore(player);
+        int lower = getLowerSectionScore(player);
+        int lowerBonus = getBonusYahtzeeScore(player);
+        return upper + upperBonus + lower + lowerBonus;
     }
 
     public YahtzeeDice getDice() {
         return dice;
+    }
+
+    public void setDice(List<Integer> newDice) {
+        dice.setDice(newDice);
+    }
+
+    public boolean isYahtzee() {
+        return dice.getDice().stream().allMatch(x -> x == dice.getDie(0));
     }
 
     private void fireGameStateChanged() {

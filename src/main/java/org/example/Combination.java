@@ -1,24 +1,22 @@
 package org.example;
 
+import java.util.function.Supplier;
+
 public class Combination {
     private final String name;
-    private final ScoreCalculator scoreCalculator;
+    private final Supplier<Integer> scoreCalculator;
 
-    public Combination(String name, ScoreCalculator calculator) {
+    public Combination(String name, Supplier<Integer> scoreCalculator) {
         this.name = name;
-        this.scoreCalculator = calculator;
+        this.scoreCalculator = scoreCalculator;
     }
 
     public String getName() {
         return name;
     }
 
-    public int score(YahtzeeDice dice) {
-        return scoreCalculator.getScore(dice);
-    }
-
-    public interface ScoreCalculator {
-        int getScore(YahtzeeDice dice);
+    public int score() {
+        return scoreCalculator.get();
     }
 
     @Override

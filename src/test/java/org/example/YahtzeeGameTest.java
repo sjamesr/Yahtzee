@@ -1,9 +1,9 @@
 package org.example;
 
+import com.google.common.collect.Streams;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,11 +27,11 @@ public class YahtzeeGameTest {
         assertThrows(IllegalStateException.class, game::rollDice);
 
         // Play the chance move
-        Combination chanceCombo = game.getCombinations().getFirst();
-        assertEquals("Chance", chanceCombo.getName());
+        Combination chanceCombo = comboByName(game, "Chance");
+        assertNotNull(chanceCombo);
 
         int expectedScore = game.getDice().getDice().stream().reduce(0, Integer::sum);
-        assertEquals(expectedScore, chanceCombo.score(game.getDice()));
+        assertEquals(expectedScore, chanceCombo.score());
 
         // Make the move
         game.makeMove(chanceCombo);
@@ -57,7 +57,7 @@ public class YahtzeeGameTest {
         YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Patrick"), new YahtzeePlayer("James")));
 
         Combination fullHouse = null;
-        for (var c : game.getCombinations()) {
+        for (var c : game.getLowerCombinations()) {
             if (c.getName().equals("Full house")) {
                 fullHouse = c;
             }
@@ -65,27 +65,72 @@ public class YahtzeeGameTest {
 
         assertNotNull(fullHouse);
 
-        assertEquals(25, fullHouse.score(new YahtzeeDice(2, 1, 1, 2, 2)));
-        assertEquals(25, fullHouse.score(new YahtzeeDice(1, 1, 2, 1, 2)));
-        assertEquals(0, fullHouse.score(new YahtzeeDice(3, 1, 1, 2, 2)));
+        game.setDice(List.of(2, 1, 1, 2, 2));
+        assertEquals(25, fullHouse.score());
 
-        assertEquals(0, fullHouse.score(new YahtzeeDice(1, 1, 1, 1, 1)));
+        game.setDice(List.of(1, 1, 2, 1, 2));
+        assertEquals(25, fullHouse.score());
+
+        game.setDice(List.of(3, 1, 1, 2, 2));
+        assertEquals(0, fullHouse.score());
+
+        game.setDice(List.of(1, 1, 1, 1, 1));
+        assertEquals(0, fullHouse.score());
     }
 
     @Test
-    public void testSmallStraight() {
-        YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Patrick"), new YahtzeePlayer("James")));
+    public void testYahtzeeJokerRules() {
+        YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Patrick")));
 
-        Combination smallStraight = null;
-        for (var c : game.getCombinations()) {
-            if (c.getName().equals("Small straight")) {
-                smallStraight = c;
-            }
+        game.setDice(List.of(6, 6, 6, 6, 6));
+
+        {
+            Combination yahtzee = comboByName(game, "Yahtzee");
+            assertEquals(50, yahtzee.score());
+
+            // Play the Yahtzee
+            game.makeMove(yahtzee);
         }
 
-        assertNotNull(smallStraight);
+        game.setDice(List.of(5, 5, 5, 5, 5));
 
-        assertEquals(30, smallStraight.score(new YahtzeeDice(1, 2, 3, 4, 2)));
-        assertEquals(30, smallStraight.score(new YahtzeeDice(2, 3, 1, 5, 4)));
+        // It's our lucky day. Because it's a bonus Yahtzee, full house and straights have special values.
+        {
+            Combination fullHouse = comboByName(game, "Full house");
+            assertEquals(25, fullHouse.score());
+            assertEquals(30, comboByName(game, "Small straight").score());
+            assertEquals(40, comboByName(game, "Large straight").score());
+
+            // Play the full house move
+            game.makeMove(fullHouse);
+        }
+
+        // Now we should have a bonus Yahtzee, and a total score of 175 (50 for the first Yahtzee, 100 for the bonus
+        // second, 25 for the full house).
+        assertEquals(175, game.getPlayerScore(0));
+    }
+
+    @Test
+    public void testYahtzeeJokerNotAllowed() {
+        // Pretend that we already burned a Yahtzee move
+        YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Patrick")));
+
+        game.setDice(List.of(1, 3, 5, 6, 6));
+        game.makeMove(comboByName(game, "Yahtzee"));
+
+        assertEquals(0, game.getBonusYahtzeeCount(0));
+
+        // Now let's say we have a Yahtzee. Full house etc. do not get special treatment.
+        assertEquals(0, comboByName(game, "Full house").score());
+        assertEquals(0, comboByName(game, "Small straight").score());
+        assertEquals(0, comboByName(game, "Large straight").score());
+
+        // No points, sad.
+        assertEquals(0, game.getPlayerScore(0));
+    }
+
+    private static Combination comboByName(YahtzeeGame g, String name) {
+        return Streams.concat(g.getUpperCombinations().stream(), g.getLowerCombinations().stream())
+                .filter(c -> c.getName().equals(name)).findFirst().orElseThrow();
     }
 }

@@ -1,7 +1,6 @@
 package org.example;
 
 import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -9,11 +8,9 @@ import java.awt.font.TextAttribute;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
-        int[] remaining = new int[]{20};
         JFrame f = new JFrame("Hello, world!");
         f.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
@@ -38,12 +35,17 @@ public class Main {
         MakeMoveAction makeMoveAction = new MakeMoveAction(game);
         JTable moveTable = getMoveTable(game);
         moveTable.getSelectionModel().addListSelectionListener(e -> {
-            if (moveTable.getSelectedRow() == -1) {
-                makeMoveAction.setCombinationToPlay(null);
-            } else {
-                makeMoveAction.setCombinationToPlay((Combination) moveTable.getValueAt(moveTable.getSelectedRow(), 0));
+            Combination comboToPlay = null;
+            int row = moveTable.getSelectedRow();
+            if (row != -1) {
+                Object o = moveTable.getValueAt(row, 0);
+                if (o instanceof Combination) {
+                    comboToPlay = (Combination) o;
+                }
             }
+            makeMoveAction.setCombinationToPlay(comboToPlay);
         });
+
         var scrollPane = new JScrollPane(moveTable);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         scrollPane.setPreferredSize(new Dimension((int) moveTable.getPreferredSize().getWidth(),
@@ -99,20 +101,24 @@ public class Main {
             @Override
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                 Component result = super.prepareRenderer(renderer, row, column);
+                if (row == -1 || column == -1) {
+                    return result;
+                }
 
-                int whoseTurn = game.getWhoseTurn();
                 result.setFont(regularFont);
 
-                // If the current player has already made the given move, render the score in bold and the name in
-                // strikethrough.
-                //
-                // TODO: we need to handle Yahtzee correctly, it can be played more than once for a bonus
-                if (row >= game.getCombinations().size()) {
+                ScoreTableModel.Row modelRow = ((ScoreTableModel) getModel()).getRow(row);
+                Object o = modelRow.getValue(0);
+
+                if (modelRow.style() == ScoreTableModel.RowStyle.TOTAL) {
                     result.setFont(boldFont);
-                } else if (game.getPlayerMoves(whoseTurn).containsKey((Combination) getValueAt(row, 0))) {
-                    if (column == 0) {
+                } else if (modelRow.style() == ScoreTableModel.RowStyle.COMBO) {
+                    Combination combo = o instanceof Combination ? (Combination) o : null;
+                    if (column == 0 && combo != null && game.getPlayerMoves(game.getWhoseTurn()).containsKey(combo)) {
+                        // Current player has already played this combo
                         result.setFont(strikethroughFont);
-                    } else if (column - 1 == whoseTurn) {
+                    } else if (column > 0 && combo != null && game.getPlayerMoves(column - 1).containsKey(combo)) {
+                        // Player for this column has already locked in this combo.
                         result.setFont(boldFont);
                     }
                 }
@@ -155,7 +161,7 @@ public class Main {
             if (combinationToPlay == null) {
                 putValue(AbstractAction.NAME, "Select combination to play...");
             } else {
-                putValue(AbstractAction.NAME, "Play " + combinationToPlay.getName() + " for " + combinationToPlay.score(game.getDice()) + " points");
+                putValue(AbstractAction.NAME, "Play " + combinationToPlay.getName() + " for " + combinationToPlay.score() + " points");
             }
         }
     }
@@ -202,72 +208,6 @@ public class Main {
         public void gameStateChanged() {
             putValue(AbstractAction.NAME, "Roll, " + game.getRollsRemaining() + " remaining");
             setEnabled(game.getRollsRemaining() > 0);
-        }
-    }
-
-    private static class ScoreTableModel extends AbstractTableModel implements YahtzeeGame.GameStateListener {
-        private final YahtzeeGame game;
-
-        public ScoreTableModel(YahtzeeGame game) {
-            this.game = game;
-            game.addGameStateListener(this);
-        }
-
-        @Override
-        public int getRowCount() {
-            return 1 + game.getCombinations().size();
-        }
-
-        @Override
-        public int getColumnCount() {
-            // One column for the combination name, plus one for each player
-            return 1 + game.getPlayers().size();
-        }
-
-        @Override
-        public String getColumnName(int columnIndex) {
-            if (columnIndex == 0) {
-                return "Combination";
-            }
-
-            return (game.getWhoseTurn() == columnIndex - 1 ? "* " : "") + game.getPlayers().get(columnIndex - 1).getName();
-        }
-
-        @Override
-        public Object getValueAt(int rowIndex, int columnIndex) {
-            List<Combination> combos = game.getCombinations();
-            if (columnIndex == 0) {
-                if (rowIndex >= combos.size()) {
-                    return "Total";
-                }
-
-                return combos.get(rowIndex);
-            }
-
-            if (rowIndex >= combos.size()) {
-                return game.getPlayerScore(columnIndex - 1);
-            }
-
-            YahtzeePlayer p = game.getPlayers().get(columnIndex - 1);
-            Combination c = combos.get(rowIndex);
-            Map<Combination, Integer> playerMoves = game.getPlayerMoves(columnIndex - 1);
-
-            // In this case, the player has already made the move.
-            if (playerMoves.containsKey(c)) {
-                return playerMoves.get(c);
-            }
-
-            // If it's this player's turn, show the score they'd get if they made this move.
-            if (columnIndex - 1 == game.getWhoseTurn()) {
-                return c.score(game.getDice());
-            }
-
-            return "";
-        }
-
-        @Override
-        public void gameStateChanged() {
-            fireTableStructureChanged();
         }
     }
 }
