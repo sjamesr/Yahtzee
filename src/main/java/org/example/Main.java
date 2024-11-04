@@ -98,7 +98,9 @@ public class Main {
                 // strikethrough.
                 //
                 // TODO: we need to handle Yahtzee correctly, it can be played more than once for a bonus
-                if (game.getPlayerMoves(whoseTurn).containsKey((Combination) getValueAt(row, 0))) {
+                if (row >= game.getCombinations().size()) {
+                    result.setFont(boldFont);
+                } else if (game.getPlayerMoves(whoseTurn).containsKey((Combination) getValueAt(row, 0))) {
                     if (column == 0) {
                         result.setFont(strikethroughFont);
                     } else if (column - 1 == whoseTurn) {
@@ -203,7 +205,7 @@ public class Main {
 
         @Override
         public int getRowCount() {
-            return game.getCombinations().size();
+            return 1 + game.getCombinations().size();
         }
 
         @Override
@@ -223,12 +225,21 @@ public class Main {
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
+            List<Combination> combos = game.getCombinations();
             if (columnIndex == 0) {
-                return game.getCombinations().get(rowIndex);
+                if (rowIndex >= combos.size()) {
+                    return "Total";
+                }
+
+                return combos.get(rowIndex);
+            }
+
+            if (rowIndex >= combos.size()) {
+                return game.getPlayerScore(columnIndex - 1);
             }
 
             YahtzeePlayer p = game.getPlayers().get(columnIndex - 1);
-            Combination c = game.getCombinations().get(rowIndex);
+            Combination c = combos.get(rowIndex);
             Map<Combination, Integer> playerMoves = game.getPlayerMoves(columnIndex - 1);
 
             // In this case, the player has already made the move.
