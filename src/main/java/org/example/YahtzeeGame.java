@@ -10,8 +10,8 @@ public class YahtzeeGame {
     private final YahtzeeDice dice;
     private int whoseTurn;
     private int rollsRemaining = 2;
-    private final Set<Combination> upperCombinations;
-    private final Set<Combination> lowerCombinations;
+    private final List<Combination> upperCombinations;
+    private final List<Combination> lowerCombinations;
     private final List<Map<Combination, Integer>> movesMade;
     private final List<GameStateListener> listeners = new ArrayList<>();
     private final int[] upperSectionScore;
@@ -25,7 +25,7 @@ public class YahtzeeGame {
         }
         this.dice = new YahtzeeDice();
 
-        upperCombinations = new LinkedHashSet<>();
+        upperCombinations = new ArrayList<>();
         upperCombinations.add(new Combination("Aces", () -> dice.getDice().stream().mapToInt(v -> v == 1 ? 1 : 0).sum()));
         upperCombinations.add(new Combination("Twos", () -> dice.getDice().stream().mapToInt(v -> v == 2 ? 2 : 0).sum()));
         upperCombinations.add(new Combination("Threes", () -> dice.getDice().stream().mapToInt(v -> v == 3 ? 3 : 0).sum()));
@@ -33,7 +33,7 @@ public class YahtzeeGame {
         upperCombinations.add(new Combination("Fives", () -> dice.getDice().stream().mapToInt(v -> v == 5 ? 5 : 0).sum()));
         upperCombinations.add(new Combination("Sixes", () -> dice.getDice().stream().mapToInt(v -> v == 6 ? 6 : 0).sum()));
 
-        lowerCombinations = new LinkedHashSet<>();
+        lowerCombinations = new ArrayList<>();
         lowerCombinations.add(new Combination("Chance", () -> dice.getDice().stream().reduce(0, Integer::sum)));
 
         lowerCombinations.add(new Combination("Three of a kind", () -> {
@@ -50,7 +50,7 @@ public class YahtzeeGame {
         yahtzeeCombo = new Combination("Yahtzee", () -> isYahtzee() ? 50 : 0);
 
         lowerCombinations.add(new Combination("Full house", () -> {
-            if (isYahtzee() && getPlayerMoves(getWhoseTurn()).getOrDefault(yahtzeeCombo, 0) != 0) {
+            if (isJoker()) {
                 return 25;
             }
 
@@ -61,9 +61,7 @@ public class YahtzeeGame {
 
         lowerCombinations.add(new Combination("Small straight",
                 () -> {
-                    if (isYahtzee() && getPlayerMoves(getWhoseTurn()).getOrDefault(yahtzeeCombo, 0) != 0) {
-                        return 30;
-                    } else if (longestSequenceLength(dice.getDice().stream().sorted().toList()) >= 4) {
+                    if (isJoker() || longestSequenceLength(dice.getDice().stream().sorted().toList()) >= 4) {
                         return 30;
                     }
                     return 0;
@@ -71,9 +69,7 @@ public class YahtzeeGame {
 
         lowerCombinations.add(new Combination("Large straight",
                 () -> {
-                    if (isYahtzee() && getPlayerMoves(getWhoseTurn()).getOrDefault(yahtzeeCombo, 0) != 0) {
-                        return 40;
-                    } else if (longestSequenceLength(dice.getDice().stream().sorted().toList()) == 5) {
+                    if (isJoker() || longestSequenceLength(dice.getDice().stream().sorted().toList()) == 5) {
                         return 40;
                     }
                     return 0;
@@ -102,12 +98,38 @@ public class YahtzeeGame {
         return Collections.unmodifiableList(players);
     }
 
-    public Set<Combination> getUpperCombinations() {
-        return Collections.unmodifiableSet(upperCombinations);
+    public List<Combination> getUpperCombinations() {
+        return Collections.unmodifiableList(upperCombinations);
     }
 
-    public Set<Combination> getLowerCombinations() {
-        return Collections.unmodifiableSet(lowerCombinations);
+    public List<Combination> getLowerCombinations() {
+        return Collections.unmodifiableList(lowerCombinations);
+    }
+
+    /**
+     * Returns {@code true} if there is a Joker on the table. A Joker exists if:
+     *
+     * <ul>
+     *   <li>the dice make a Yahtzee
+     *   <li>the corresponding upper combination (e.g. Twos if the Yahtzee is of the number 2) has
+     *       already been played
+     *   <li>The Yahtzee combination has already been played and scored 50 points (not zero).
+     * </ul>
+     */
+    public boolean isJoker() {
+        if (!isYahtzee()) {
+            return false;
+        }
+
+        int roll = dice.getDie(0);
+        Combination upperCombination = upperCombinations.get(roll - 1);
+        if (!movesMade.get(whoseTurn).containsKey(upperCombination)) {
+            // The upper combination has not been played
+            return false;
+        }
+
+      // Check if Yahtzee move has either not been played, or it was played and scored a 0.
+      return movesMade.get(whoseTurn).getOrDefault(yahtzeeCombo, 0) != 0;
     }
 
     /**
