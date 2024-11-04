@@ -16,10 +16,7 @@ public class YahtzeeDice {
         random = new Random();
         dice = new int[5];
         held = new boolean[5];
-
-        for (int i = 0; i < dice.length; i++) {
-            dice[i] = random.nextInt(1, 7);
-        }
+        roll();
     }
 
     /**
