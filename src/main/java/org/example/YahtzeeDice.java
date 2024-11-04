@@ -58,4 +58,15 @@ public class YahtzeeDice {
     public List<Integer> getDice() {
         return Arrays.stream(dice).boxed().toList();
     }
+
+    public void setDice(List<Integer> newDice) {
+        int i = 0;
+        for (int d : newDice) {
+            if (i >= dice.length) {
+                return;
+            }
+
+            dice[i++] = d;
+        }
+    }
 }
