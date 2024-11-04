@@ -94,20 +94,31 @@ public class YahtzeeGameTest {
 
         game.setDice(List.of(5, 5, 5, 5, 5));
 
-        // It's our lucky day. Because it's a bonus Yahtzee, full house and straights have special values.
+        // We've already got a Yahtzee, but it can't be a Joker yet (5s haven't been played)
         {
-            Combination fullHouse = comboByName(game, "Full house");
-            assertEquals(25, fullHouse.score());
+            assertEquals(0, comboByName(game, "Full house").score());
+            assertEquals(0, comboByName(game, "Small straight").score());
+            assertEquals(0, comboByName(game, "Large straight").score());
+
+            // Play the fives move
+            game.makeMove(comboByName(game, "Fives"));
+        }
+
+        game.setDice(List.of(5, 5, 5, 5, 5));
+        {
+            // It's our lucky day, another Yahtzee of 5s, this time it can act as Joker, because
+            // the 5s move has already been played.
+            assertEquals(25, comboByName(game, "Full house").score());
             assertEquals(30, comboByName(game, "Small straight").score());
             assertEquals(40, comboByName(game, "Large straight").score());
 
             // Play the full house move
-            game.makeMove(fullHouse);
+            game.makeMove(comboByName(game, "Full house"));
         }
 
-        // Now we should have a bonus Yahtzee, and a total score of 175 (50 for the first Yahtzee, 100 for the bonus
-        // second, 25 for the full house).
-        assertEquals(175, game.getPlayerScore(0));
+        // Our score should be 50 (original Yahtzee) + 25 (fives move) + 100 (bonus Yahtzee) +
+        // 25 (full house) + 100 (second bonus Yahtzee) = 300
+        assertEquals(300, game.getPlayerScore(0));
     }
 
     @Test
@@ -119,14 +130,31 @@ public class YahtzeeGameTest {
         game.makeMove(comboByName(game, "Yahtzee"));
 
         assertEquals(0, game.getBonusYahtzeeCount(0));
+        assertEquals(0, game.getPlayerScore(0));
 
-        // Now let's say we have a Yahtzee. Full house etc. do not get special treatment.
+        // Pretend we got a Yahtzee, play the twos move.
+        game.setDice(List.of(2, 2, 2, 2, 2));
+        game.makeMove(comboByName(game, "Twos"));
+
+        assertEquals(10, game.getPlayerScore(0));
+
+        // Now get another Yahtzee
+        game.setDice(List.of(2, 2, 2, 2, 2));
+
+        // Now let's say we have a Yahtzee. Full house etc. do not get special treatment, again
+        // because Yahtzee is not an option.
         assertEquals(0, comboByName(game, "Full house").score());
         assertEquals(0, comboByName(game, "Small straight").score());
         assertEquals(0, comboByName(game, "Large straight").score());
 
-        // No points, sad.
-        assertEquals(0, game.getPlayerScore(0));
+        // Play the four of a kind move:
+        game.makeMove(comboByName(game, "Four of a kind"));
+
+        // No bonus Yahtzee
+        assertEquals(0, game.getBonusYahtzeeCount(0));
+
+        // Our score should be 10 (twos move) + 10 (four of a kind)
+        assertEquals(20, game.getPlayerScore(0));
     }
 
     private static Combination comboByName(YahtzeeGame g, String name) {
