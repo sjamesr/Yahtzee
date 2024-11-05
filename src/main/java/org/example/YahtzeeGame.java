@@ -226,6 +226,17 @@ public class YahtzeeGame {
         return upper + upperBonus + lower + lowerBonus;
     }
 
+    public boolean isGameOver() {
+        int moveCount = lowerCombinations.size() + upperCombinations.size();
+        for (Map<Combination, Integer> playerMoves : movesMade) {
+            if (playerMoves.size() != moveCount) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public YahtzeeDice getDice() {
         return dice;
     }

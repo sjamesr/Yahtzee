@@ -5,16 +5,45 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.font.TextAttribute;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        JFrame f = new JFrame("Hello, world!");
+        JFrame f = new JFrame("Yahtzee!");
         f.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Player 1"), new YahtzeePlayer("Player 2")));
+
+        f.getContentPane().add(createGamePanel(game));
+
+        game.addGameStateListener(() -> {
+            if (game.isGameOver()) {
+                StringBuilder message = new StringBuilder("Game over! Here are the final standings: \n");
+
+                int playerCount = game.getPlayers().size();
+                List<Integer> standings = new ArrayList<>(playerCount);
+                for (int i = 0; i < playerCount; i++) {
+                    standings.add(i);
+                }
+                standings.sort(Comparator.comparing(game::getPlayerScore));
+                for (int player : standings) {
+                    message.append(game.getPlayers().get(player).getName())
+                            .append(": ").append(game.getPlayerScore(player));
+                }
+
+                JOptionPane.showMessageDialog(f, message, "Game over", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+
+        f.revalidate();
+        f.pack();
+        f.setVisible(true);
+        f.setResizable(false);
+    }
+
+    private static JPanel createGamePanel(YahtzeeGame game) {
+        JPanel container = new JPanel();
 
         // hold dice actions
         var holdActions = new ArrayList<Action>();
@@ -23,7 +52,7 @@ public class Main {
         }
 
         var l = new GridBagLayout();
-        f.getContentPane().setLayout(l);
+        container.setLayout(l);
 
         var c = new GridBagConstraints();
         c.gridy = 0;
@@ -51,7 +80,7 @@ public class Main {
         scrollPane.setPreferredSize(new Dimension((int) moveTable.getPreferredSize().getWidth(),
                 5 + (int) (moveTable.getPreferredSize().getHeight()
                         + moveTable.getTableHeader().getPreferredSize().getHeight())));
-        f.getContentPane().add(scrollPane, c);
+        container.add(scrollPane, c);
 
         c.fill = GridBagConstraints.BOTH;
         c.weightx = 1;
@@ -61,7 +90,7 @@ public class Main {
         for (int i = 0; i < 5; i++) {
             var button = new JDiceToggleButton(game, i);
             button.setAction(holdActions.get(i));
-            f.getContentPane().add(button, c);
+            container.add(button, c);
         }
 
         c.gridy++;
@@ -70,20 +99,17 @@ public class Main {
         for (int i = 0; i < 5; i++) {
             var checkbox = new JCheckBox(holdActions.get(i));
             checkbox.setHorizontalAlignment(SwingConstants.CENTER);
-            f.getContentPane().add(checkbox, c);
+            container.add(checkbox, c);
         }
 
         JButton rollButton = new JButton(new RollAction(game));
         c.gridy++;
         c.gridwidth = 2;
-        f.getContentPane().add(rollButton, c);
+        container.add(rollButton, c);
 
         c.gridwidth = GridBagConstraints.REMAINDER;
-        f.getContentPane().add(new JButton(makeMoveAction), c);
-
-        f.pack();
-        f.setVisible(true);
-        f.setResizable(false);
+        container.add(new JButton(makeMoveAction), c);
+        return container;
     }
 
     private static JTable getMoveTable(YahtzeeGame game) {
