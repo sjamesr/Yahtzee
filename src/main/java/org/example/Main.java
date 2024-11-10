@@ -4,6 +4,7 @@ import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.font.TextAttribute;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,6 +13,15 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
         JFrame f = new JFrame("Hello, world!");
+        Action quitAction = new AbstractAction("Quit") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.exit(0);
+            }
+        };
+        quitAction.putValue(AbstractAction.MNEMONIC_KEY, KeyEvent.VK_Q);
+        quitAction.putValue(AbstractAction.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK));
+
         f.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Player 1"), new YahtzeePlayer("Player 2")));
@@ -69,11 +79,13 @@ public class Main {
         c.anchor = GridBagConstraints.CENTER;
         for (int i = 0; i < 5; i++) {
             var checkbox = new JCheckBox(holdActions.get(i));
+            checkbox.setHideActionText(true);
             checkbox.setHorizontalAlignment(SwingConstants.CENTER);
             f.getContentPane().add(checkbox, c);
         }
 
-        JButton rollButton = new JButton(new RollAction(game));
+        var rollAction = new RollAction(game);
+        JButton rollButton = new JButton(rollAction);
         c.gridy++;
         c.gridwidth = 2;
         f.getContentPane().add(rollButton, c);
@@ -81,6 +93,76 @@ public class Main {
         c.gridwidth = GridBagConstraints.REMAINDER;
         f.getContentPane().add(new JButton(makeMoveAction), c);
 
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
+            @Override
+            public boolean dispatchKeyEvent(KeyEvent e) {
+                if (e.getID() != KeyEvent.KEY_PRESSED) {
+                    return false;
+                }
+
+                Action action = null;
+                boolean toggle = false;
+
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_1:
+                        action = holdActions.get(0);
+                        toggle = true;
+                        break;
+                    case KeyEvent.VK_2:
+                        action = holdActions.get(1);
+                        toggle = true;
+                        break;
+                    case KeyEvent.VK_3:
+                        action = holdActions.get(2);
+                        toggle = true;
+                        break;
+                    case KeyEvent.VK_4:
+                        action = holdActions.get(3);
+                        toggle = true;
+                        break;
+                    case KeyEvent.VK_5:
+                        action = holdActions.get(4);
+                        toggle = true;
+                        break;
+                    case KeyEvent.VK_SPACE:
+                        action = makeMoveAction;
+                        break;
+                    case KeyEvent.VK_R:
+                        action = rollAction;
+                        break;
+                    default:
+                }
+
+                if (action != null && action.isEnabled()) {
+                    if (toggle) {
+                        action.putValue(AbstractAction.SELECTED_KEY, !(action.getValue(AbstractAction.SELECTED_KEY) == Boolean.TRUE));
+                    }
+
+                    action.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, null));
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        var menuBar = new JMenuBar();
+        var gameMenu = new JMenu("Game");
+        gameMenu.setMnemonic('G');
+
+        for (var action : holdActions) {
+            gameMenu.add(new JCheckBoxMenuItem(action));
+        }
+
+        gameMenu.addSeparator();
+        gameMenu.add(rollAction);
+        gameMenu.add(makeMoveAction);
+        gameMenu.addSeparator();
+        gameMenu.add(quitAction);
+
+        menuBar.add(gameMenu);
+        f.setJMenuBar(menuBar);
+
+        f.revalidate();
         f.pack();
         f.setVisible(true);
         f.setResizable(false);
@@ -131,6 +213,7 @@ public class Main {
             }
         };
 
+        moveTable.setColumnSelectionAllowed(false);
         moveTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         return moveTable;
     }
@@ -141,6 +224,8 @@ public class Main {
 
         public MakeMoveAction(YahtzeeGame game) {
             this.game = game;
+            putValue(AbstractAction.MNEMONIC_KEY, KeyEvent.VK_S);
+            putValue(AbstractAction.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.CTRL_DOWN_MASK));
             setEnabled(false);
             updateName();
         }
@@ -179,6 +264,9 @@ public class Main {
             this.die = die;
             putValue(AbstractAction.SELECTED_KEY, false);
             putValue(AbstractAction.SHORT_DESCRIPTION, "Hold die " + (die + 1));
+            putValue(AbstractAction.NAME, "Hold die " + (die + 1));
+            putValue(AbstractAction.MNEMONIC_KEY, '1' + die);
+            putValue(AbstractAction.ACCELERATOR_KEY, KeyStroke.getKeyStroke('1' + die, KeyEvent.CTRL_DOWN_MASK));
             game.addGameStateListener(this);
         }
 
@@ -200,6 +288,8 @@ public class Main {
             this.game = game;
             setEnabled(game.getRollsRemaining() > 0);
             putValue(AbstractAction.NAME, "Roll, " + game.getRollsRemaining() + " remaining");
+            putValue(AbstractAction.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_R, KeyEvent.CTRL_DOWN_MASK));
+            putValue(AbstractAction.MNEMONIC_KEY, KeyEvent.VK_R);
             game.addGameStateListener(this);
         }
 

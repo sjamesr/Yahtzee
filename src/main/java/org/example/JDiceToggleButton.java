@@ -14,6 +14,7 @@ public class JDiceToggleButton extends JToggleButton implements YahtzeeGame.Game
         this.game = game;
         this.die = die;
         game.addGameStateListener(this);
+        setHideActionText(true);
     }
 
     @Override
