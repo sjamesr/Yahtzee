@@ -56,13 +56,7 @@ public class YahtzeeGameTest {
     public void testFullHouse() {
         YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Patrick"), new YahtzeePlayer("James")));
 
-        Combination fullHouse = null;
-        for (var c : game.getLowerCombinations()) {
-            if (c.getName().equals("Full house")) {
-                fullHouse = c;
-            }
-        }
-
+        Combination fullHouse = comboByName(game, "Full house");
         assertNotNull(fullHouse);
 
         game.setDice(List.of(2, 1, 1, 2, 2));
