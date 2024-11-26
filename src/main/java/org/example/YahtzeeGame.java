@@ -244,6 +244,16 @@ public class YahtzeeGame {
         }
     }
 
+    public boolean isGameOver() {
+        int moveCount = getLowerCombinations().size() + getUpperCombinations().size();
+        for (Map<Combination, Integer> playerMoves : movesMade) {
+            if (playerMoves.size() != moveCount) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public interface GameStateListener {
         /**
          * Informs the listener that the game state has changed. A fancier version might tell the listener exactly what

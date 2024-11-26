@@ -1,5 +1,6 @@
 package org.example;
 
+import java.util.Comparator;
 import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
@@ -13,6 +14,24 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
         JFrame f = new JFrame("Hello, world!");
+        int playerCount = 0;
+
+        do {
+            try {
+                playerCount = Integer.parseInt(
+                    JOptionPane.showInputDialog(f.getContentPane(), "How many players (1-10)?"));
+            } catch (NumberFormatException ignored) {}
+        } while (playerCount < 1 || playerCount > 10);
+
+        List<YahtzeePlayer> players = new ArrayList<>(playerCount);
+        for (int i = 0; i < playerCount; i++) {
+            players.add(new YahtzeePlayer(
+                JOptionPane.showInputDialog(f.getContentPane(), "Player " + (i + 1) + " name",
+                    "Player " + (i + 1))));
+        }
+
+        YahtzeeGame game = new YahtzeeGame(players);
+
         Action quitAction = new AbstractAction("Quit") {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -23,8 +42,6 @@ public class Main {
         quitAction.putValue(AbstractAction.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK));
 
         f.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-
-        YahtzeeGame game = new YahtzeeGame(List.of(new YahtzeePlayer("Player 1"), new YahtzeePlayer("Player 2")));
 
         // hold dice actions
         var holdActions = new ArrayList<Action>();
@@ -158,6 +175,37 @@ public class Main {
         gameMenu.add(makeMoveAction);
         gameMenu.addSeparator();
         gameMenu.add(quitAction);
+
+        game.addGameStateListener(() -> {
+            // Detect the game over scenario.
+            if (game.isGameOver()) {
+                // Create the standings:
+                StringBuilder builder = new StringBuilder("Game over!\n\n");
+
+                List<Integer> standings = new ArrayList<>();
+                for (int i = 0; i < game.getPlayers().size(); i++) {
+                    standings.add(i);
+                }
+
+                standings.sort(Comparator.comparing(game::getPlayerScore).reversed());
+
+                int place = 0;
+                int lastScore = Integer.MAX_VALUE;
+                for (int i = 0; i < game.getPlayers().size(); i++) {
+                    int currentScore = game.getPlayerScore(i);
+                    if (currentScore < lastScore) {
+                        place++;
+                    }
+                    builder.append(place).append(". ").append(game.getPlayers().get(i).getName())
+                        .append(" ").append(currentScore).append("\n");
+
+                    lastScore = currentScore;
+                }
+
+                JOptionPane.showMessageDialog(f.getContentPane(), builder);
+                System.exit(0);
+            }
+        });
 
         menuBar.add(gameMenu);
         f.setJMenuBar(menuBar);
