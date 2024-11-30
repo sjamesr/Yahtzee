@@ -1,6 +1,5 @@
 package org.example;
 
-import java.util.Comparator;
 import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
@@ -9,28 +8,37 @@ import java.awt.event.KeyEvent;
 import java.awt.font.TextAttribute;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class Main {
+    private static KeyEventDispatcher dispatcher;
+
     public static void main(String[] args) {
-        JFrame f = new JFrame("Hello, world!");
-        int playerCount = 0;
+        NewGameDialog dialog = new NewGameDialog(null);
+        dialog.addActionListener(e -> {
+            YahtzeeGame game = dialog.getGame();
+            if (game == null) {
+                System.exit(0);
+            } else {
+                JFrame f = getNewGameFrame(dialog.getGame());
+                showStandingsWhenGameEnds(game, f.getContentPane());
+                game.addGameStateListener(() -> {
+                    if (game.isGameOver()) {
+                        f.setVisible(false);
+                        f.dispose();
+                        dialog.setVisible(true);
+                    }
+                });
+                dialog.setVisible(false);
+                f.setVisible(true);
+            }
+        });
+        dialog.setVisible(true);
+    }
 
-        do {
-            try {
-                playerCount = Integer.parseInt(
-                    JOptionPane.showInputDialog(f.getContentPane(), "How many players (1-10)?"));
-            } catch (NumberFormatException ignored) {}
-        } while (playerCount < 1 || playerCount > 10);
-
-        List<YahtzeePlayer> players = new ArrayList<>(playerCount);
-        for (int i = 0; i < playerCount; i++) {
-            players.add(new YahtzeePlayer(
-                JOptionPane.showInputDialog(f.getContentPane(), "Player " + (i + 1) + " name",
-                    "Player " + (i + 1))));
-        }
-
-        YahtzeeGame game = new YahtzeeGame(players);
+    public static JFrame getNewGameFrame(YahtzeeGame game) {
+        JFrame f = new JFrame("Yahtzee!");
 
         Action quitAction = new AbstractAction("Quit") {
             @Override
@@ -110,7 +118,11 @@ public class Main {
         c.gridwidth = GridBagConstraints.REMAINDER;
         f.getContentPane().add(new JButton(makeMoveAction), c);
 
-        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
+        if (dispatcher != null) {
+            KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(dispatcher);
+        }
+
+        dispatcher = new KeyEventDispatcher() {
             @Override
             public boolean dispatchKeyEvent(KeyEvent e) {
                 if (e.getID() != KeyEvent.KEY_PRESSED) {
@@ -160,7 +172,8 @@ public class Main {
                 }
                 return false;
             }
-        });
+        };
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(dispatcher);
 
         var menuBar = new JMenuBar();
         var gameMenu = new JMenu("Game");
@@ -176,44 +189,14 @@ public class Main {
         gameMenu.addSeparator();
         gameMenu.add(quitAction);
 
-        game.addGameStateListener(() -> {
-            // Detect the game over scenario.
-            if (game.isGameOver()) {
-                // Create the standings:
-                StringBuilder builder = new StringBuilder("Game over!\n\n");
-
-                List<Integer> standings = new ArrayList<>();
-                for (int i = 0; i < game.getPlayers().size(); i++) {
-                    standings.add(i);
-                }
-
-                standings.sort(Comparator.comparing(game::getPlayerScore).reversed());
-
-                int place = 0;
-                int lastScore = Integer.MAX_VALUE;
-                for (int i = 0; i < game.getPlayers().size(); i++) {
-                    int currentScore = game.getPlayerScore(i);
-                    if (currentScore < lastScore) {
-                        place++;
-                    }
-                    builder.append(place).append(". ").append(game.getPlayers().get(i).getName())
-                        .append(" ").append(currentScore).append("\n");
-
-                    lastScore = currentScore;
-                }
-
-                JOptionPane.showMessageDialog(f.getContentPane(), builder);
-                System.exit(0);
-            }
-        });
-
         menuBar.add(gameMenu);
         f.setJMenuBar(menuBar);
 
         f.revalidate();
         f.pack();
-        f.setVisible(true);
         f.setResizable(false);
+
+        return f;
     }
 
     private static JTable getMoveTable(YahtzeeGame game) {
@@ -351,5 +334,37 @@ public class Main {
             putValue(AbstractAction.NAME, "Roll, " + game.getRollsRemaining() + " remaining");
             setEnabled(game.getRollsRemaining() > 0);
         }
+    }
+
+    private static void showStandingsWhenGameEnds(YahtzeeGame game, Component parent) {
+        game.addGameStateListener(() -> {
+            // Detect the game over scenario.
+            if (game.isGameOver()) {
+                // Create the standings:
+                StringBuilder builder = new StringBuilder("Game over!\n\n");
+
+                List<Integer> standings = new ArrayList<>();
+                for (int i = 0; i < game.getPlayers().size(); i++) {
+                    standings.add(i);
+                }
+
+                standings.sort(Comparator.comparing(game::getPlayerScore).reversed());
+
+                int place = 0;
+                int lastScore = Integer.MAX_VALUE;
+                for (int i = 0; i < game.getPlayers().size(); i++) {
+                    int currentScore = game.getPlayerScore(i);
+                    if (currentScore < lastScore) {
+                        place++;
+                    }
+                    builder.append(place).append(". ").append(game.getPlayers().get(i).getName())
+                            .append(" ").append(currentScore).append("\n");
+
+                    lastScore = currentScore;
+                }
+
+                JOptionPane.showMessageDialog(parent, builder);
+            }
+        });
     }
 }

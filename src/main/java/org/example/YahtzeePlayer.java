@@ -1,7 +1,7 @@
 package org.example;
 
 public class YahtzeePlayer {
-    private final String name;
+    private String name;
 
     public YahtzeePlayer(String name) {
         this.name = name;
@@ -9,6 +9,10 @@ public class YahtzeePlayer {
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     @Override
