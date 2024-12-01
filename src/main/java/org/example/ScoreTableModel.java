@@ -59,7 +59,7 @@ public class ScoreTableModel extends AbstractTableModel implements YahtzeeGame.G
             return "";
         }
 
-        return (column - 1 == game.getWhoseTurn() ? "* " : "") + game.getPlayers().get(column - 1).getName();
+        return (column - 1 == game.getWhoseTurn() ? "⬇ " : "") + game.getPlayers().get(column - 1).getName();
     }
 
     @Override
