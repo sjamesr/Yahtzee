@@ -352,12 +352,12 @@ public class Main {
 
                 int place = 0;
                 int lastScore = Integer.MAX_VALUE;
-                for (int i = 0; i < game.getPlayers().size(); i++) {
-                    int currentScore = game.getPlayerScore(i);
+                for (int player : standings) {
+                    int currentScore = game.getPlayerScore(player);
                     if (currentScore < lastScore) {
                         place++;
                     }
-                    builder.append(place).append(". ").append(game.getPlayers().get(i).getName())
+                    builder.append(place).append(". ").append(game.getPlayers().get(player).getName())
                             .append(" ").append(currentScore).append("\n");
 
                     lastScore = currentScore;
