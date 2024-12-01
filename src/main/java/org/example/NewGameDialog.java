@@ -14,6 +14,8 @@ import java.util.prefs.Preferences;
 public class NewGameDialog {
     private static final String DESIRED_PLAYER_COUNT_KEY = "desired_player_count";
     private static final String PLAYER_NAME_KEY = "player_name";
+    private static final String NEW_GAME_DIALOG_SIZE = "new_game_dialog_size";
+    private static final String NEW_GAME_DIALOG_POS = "new_game_dialog_pos";
 
     private final JDialog dialog;
     private YahtzeeGame game = null;
@@ -27,6 +29,8 @@ public class NewGameDialog {
         dialog.setContentPane(getMainPanel());
         dialog.pack();
         dialog.setModal(false);
+
+        SwingUtils.resizeAndSaveWindowState(prefs, dialog, NEW_GAME_DIALOG_SIZE, NEW_GAME_DIALOG_POS);
     }
 
     public void addActionListener(ActionListener l) {
