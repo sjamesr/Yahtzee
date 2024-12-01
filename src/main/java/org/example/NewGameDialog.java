@@ -117,8 +117,12 @@ public class NewGameDialog {
             desiredPlayerCount = model.getNumber().intValue();
             prefs.putInt(DESIRED_PLAYER_COUNT_KEY, desiredPlayerCount);
             populatePlayerNames(panel);
-            panel.invalidate();
-            dialog.pack();
+
+            Dimension preferredSize = dialog.getPreferredSize();
+            Dimension actualSize = dialog.getSize();
+
+            dialog.setSize((int) Math.max(actualSize.getWidth(), preferredSize.getWidth()),
+                    (int) Math.max(actualSize.getHeight(), preferredSize.getHeight()));
         });
 
         return panel;
@@ -171,6 +175,9 @@ public class NewGameDialog {
                 }
             });
         }
+
+        cont.revalidate();
+        cont.repaint();
     }
 
     public YahtzeeGame getGame() {
