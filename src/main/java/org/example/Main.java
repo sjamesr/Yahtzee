@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.prefs.Preferences;
 
 public class Main {
     private static KeyEventDispatcher dispatcher;
@@ -32,6 +33,8 @@ public class Main {
                 });
                 dialog.setVisible(false);
                 f.setVisible(true);
+                SwingUtils.resizeAndSaveWindowState(Preferences.userNodeForPackage(Main.class), f,
+                        "game_window_size", "game_window_pos");
             }
         });
         dialog.setVisible(true);
