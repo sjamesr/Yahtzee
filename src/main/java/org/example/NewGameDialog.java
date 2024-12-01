@@ -11,25 +11,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class NewGameDialog {
-    JDialog dialog;
-    YahtzeeGame game;
-    List<ActionListener> listeners;
+    private final JDialog dialog;
+    private YahtzeeGame game = null;
+    private final List<ActionListener> listeners = new ArrayList<>();
     int desiredPlayerCount = 2;
-        List<YahtzeePlayer> players = new ArrayList<>();
+    private final List<YahtzeePlayer> players = new ArrayList<>();
 
     public NewGameDialog(Frame owner) {
         dialog = new JDialog(owner);
-        game = null;
-        listeners = new ArrayList<>();
-        dialog.getContentPane().setLayout(new GridBagLayout());
-        var c = new GridBagConstraints();
-        c.fill = GridBagConstraints.BOTH;
-        c.weightx = 1;
-        c.weighty = 1;
-
-        Component mainPanel = getMainPanel();
-        dialog.getContentPane().add(mainPanel, c);
-
+        dialog.setContentPane(getMainPanel());
         dialog.pack();
         dialog.setModal(false);
     }
@@ -42,40 +32,63 @@ public class NewGameDialog {
         dialog.setVisible(visible);
     }
 
-    private Component getMainPanel() {
-        var cont = new Container();
+    private JPanel getMainPanel() {
+        var cont = new JPanel();
         cont.setLayout(new GridBagLayout());
-        var c = new GridBagConstraints();
-        c.gridy = 0;
-        cont.add(new JLabel("Players"), c);
+        var outerConstraints = new GridBagConstraints();
+        outerConstraints.fill = GridBagConstraints.HORIZONTAL;
+        outerConstraints.weightx = 1;
+        outerConstraints.weighty = 0;
+        outerConstraints.gridy = 0;
+        outerConstraints.gridwidth = 2;
+
         var spinnerModel = new SpinnerNumberModel(desiredPlayerCount, 1, 10, 1);
-        cont.add(new JSpinner(spinnerModel), c);
 
-        c.gridy++;
-        c.gridwidth = GridBagConstraints.REMAINDER;
-        JComponent playerNamesPanel = getPlayerNamesPanel(spinnerModel);
-        playerNamesPanel.setBorder(new TitledBorder("Player names"));
-        cont.add(playerNamesPanel, c);
+        {
+            JPanel spinnerPanel = new JPanel(new GridBagLayout());
+            var c = new GridBagConstraints();
+            c.gridy = 0;
+            c.anchor = GridBagConstraints.LINE_START;
+            spinnerPanel.add(new JLabel("Players"), c);
 
-        c.gridy++;
-        c.fill = GridBagConstraints.NONE;
-        c.anchor = GridBagConstraints.LINE_END;
-        c.gridwidth = 1;
-        JButton okButton = new JButton("Ok");
-        okButton.addActionListener(e -> {
-            game = new YahtzeeGame(players.subList(0, desiredPlayerCount));
-            fireActionPerformedEvent(e);
-        });
-        cont.add(okButton, c);
+            c.weightx = 1;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            spinnerPanel.add(new JSpinner(spinnerModel), c);
 
-        c.anchor = GridBagConstraints.LINE_START;
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(e -> {
-            game = null;
-            fireActionPerformedEvent(e);
-        });
-        cont.add(cancelButton, c);
+            cont.add(spinnerPanel, outerConstraints);
+        }
 
+        {
+            outerConstraints.gridy++;
+            outerConstraints.fill = GridBagConstraints.BOTH;
+            outerConstraints.weighty = 1;
+            JComponent playerNamesPanel = getPlayerNamesPanel(spinnerModel);
+            playerNamesPanel.setBorder(new TitledBorder("Player names"));
+            cont.add(playerNamesPanel, outerConstraints);
+        }
+
+        {
+            outerConstraints.gridy++;
+            outerConstraints.fill = GridBagConstraints.NONE;
+            outerConstraints.weightx = 0;
+            outerConstraints.weighty = 0;
+            outerConstraints.gridwidth = 1;
+            JButton startButton = new JButton("Start game!");
+            startButton.setMnemonic('S');
+            startButton.addActionListener(e -> {
+                game = new YahtzeeGame(players.subList(0, desiredPlayerCount));
+                fireActionPerformedEvent(e);
+            });
+            cont.add(startButton, outerConstraints);
+
+            JButton quitButton = new JButton("Quit");
+            quitButton.setMnemonic('Q');
+            quitButton.addActionListener(e -> {
+                game = null;
+                fireActionPerformedEvent(e);
+            });
+            cont.add(quitButton, outerConstraints);
+        }
 
         return cont;
     }
@@ -114,7 +127,6 @@ public class NewGameDialog {
                 player = players.get(i);
             }
 
-            c.weightx = 0;
             c.fill = GridBagConstraints.NONE;
             c.anchor = GridBagConstraints.LINE_START;
             cont.add(new JLabel(String.format("Player %d", i + 1)), c);
