@@ -140,6 +140,7 @@ public class NewGameDialog {
 
             c.fill = GridBagConstraints.NONE;
             c.anchor = GridBagConstraints.LINE_START;
+            c.weightx = 0;
             cont.add(new JLabel(String.format("Player %d", i + 1)), c);
             c.weightx = 1;
             c.fill = GridBagConstraints.HORIZONTAL;
