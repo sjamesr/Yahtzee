@@ -5,7 +5,7 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
 public class DicePainter {
-    private static double PADDING = 0.1;
+    private static final double PADDING = 0.1;
 
     void paintDice(Graphics g, Rectangle2D rect, int value) {
         int sizeX = (int) (rect.getWidth() / 5.0);

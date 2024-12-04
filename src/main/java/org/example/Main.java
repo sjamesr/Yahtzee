@@ -66,8 +66,8 @@ public class Main {
         var c = new GridBagConstraints();
         c.gridy = 0;
         c.weightx = 1;
-        c.weighty = 0;
-        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weighty = 1;
+        c.fill = GridBagConstraints.BOTH;
 
         c.gridwidth = 5;
         MakeMoveAction makeMoveAction = new MakeMoveAction(game);
@@ -93,7 +93,7 @@ public class Main {
 
         c.fill = GridBagConstraints.BOTH;
         c.weightx = 1;
-        c.weighty = 1;
+        c.weighty = 0;
         c.gridy++;
         c.gridwidth = 1;
         for (int i = 0; i < 5; i++) {

@@ -36,4 +36,9 @@ public class JDiceToggleButton extends JToggleButton implements YahtzeeGame.Game
     public Dimension getPreferredSize() {
         return new Dimension(100, 100);
     }
+
+    @Override
+    public Dimension getMinimumSize() {
+        return getPreferredSize();
+    }
 }
